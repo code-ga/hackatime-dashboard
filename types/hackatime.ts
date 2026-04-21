@@ -8,12 +8,12 @@ export type GetAnyUserStatsResponse = {
 			total_seconds: number;
 			percent: number;
 		}[];
-		projects: {
+		projects?: {
 			name: string;
 			total_seconds: number;
 			percent: number;
 		}[];
-		editors: {
+		editors?: {
 			name: string;
 			total_seconds: number;
 			percent: number;
@@ -43,13 +43,11 @@ export type GetAnyUserStatsInput = {
 
 // GET /api/v1/users/{username}/heartbeats/spans Get heartbeat spans
 export type GetAnyUserHeartbeatsSpansResponse = {
-	spans: [
-		{
-			duration: number;
-			start_time: number; // ISO 8601 format
-			end_time: number; // ISO 8601 format
-		},
-	];
+	spans: {
+		duration: number;
+		start_time: number; // ISO 8601 format
+		end_time: number; // ISO 8601 format
+	}[];
 };
 
 export type GetAnyUserHeartbeatsSpansInput = {

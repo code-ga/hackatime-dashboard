@@ -39,6 +39,9 @@
   --color-popover: var(--popover);
   --color-card-foreground: var(--card-foreground);
   --color-card: var(--card);
+  --color-cyan: var(--cyan);
+  --color-magenta: var(--magenta);
+  --color-green: var(--green);
   --radius-sm: calc(var(--radius) * 0.6);
   --radius-md: calc(var(--radius) * 0.8);
   --radius-lg: var(--radius);
@@ -115,6 +118,9 @@
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.556 0 0);
+  --cyan: oklch(0.858 0.202 200.5);
+  --magenta: oklch(0.658 0.252 320.36);
+  --green: oklch(0.758 0.252 145.85);
 }
 
 @layer base {
@@ -126,5 +132,32 @@
   }
   html {
     @apply font-mono;
+  }
+}
+
+@layer utilities {
+  .neon-cyan {
+    box-shadow: 0 0 5px theme(--color-cyan), 0 0 10px theme(--color-cyan), 0 0 15px theme(--color-cyan);
+  }
+  .neon-magenta {
+    box-shadow: 0 0 5px theme(--color-magenta), 0 0 10px theme(--color-magenta), 0 0 15px theme(--color-magenta);
+  }
+  .neon-green {
+    box-shadow: 0 0 5px theme(--color-green), 0 0 10px theme(--color-green), 0 0 15px theme(--color-green);
+  }
+  .glow-cyan {
+    text-shadow: 0 0 5px theme(--color-cyan), 0 0 10px theme(--color-cyan);
+  }
+  .glow-magenta {
+    text-shadow: 0 0 5px theme(--color-magenta), 0 0 10px theme(--color-magenta);
+  }
+  .glow-green {
+    text-shadow: 0 0 5px theme(--color-green), 0 0 10px theme(--color-green);
+  }
+  .cyberpunk-grid {
+    background-image: 
+      linear-gradient(rgba(0, 255, 255, 0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0, 255, 255, 0.03) 1px, transparent 1px);
+    background-size: 20px 20px;
   }
 }

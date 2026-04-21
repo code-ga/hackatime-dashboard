@@ -8,7 +8,7 @@ import type {
 } from "../types/hackatime";
 import { fetcher } from "./fetch";
 
-const API_BASE_URL = "https://www.hackatime.com/api/v1";
+const API_BASE_URL = "https://hackatime.hackclub.com/api/v1";
 
 export const hackatimeApi = {
 	stats: {
@@ -25,14 +25,22 @@ export const hackatimeApi = {
 	},
 	users: {
 		//GET /api/v1/users/{username}/heartbeats/spans Get heartbeat spans
-		getAnyUserHeartbeatsSpans: (input: GetAnyUserHeartbeatsSpansInput) => {
+		getAnyUserHeartbeatsSpans: async (
+			input: GetAnyUserHeartbeatsSpansInput,
+		) => {
 			const { parameters, query } = input;
 			const queryString = new URLSearchParams(
 				query as Record<string, string>,
 			).toString();
-			return fetcher<GetAnyUserHeartbeatsSpansResponse>(
+			const data = await fetcher<GetAnyUserHeartbeatsSpansResponse>(
 				`${API_BASE_URL}/users/${parameters.username}/heartbeats/spans?${queryString}`,
 			);
+			data.spans = data.spans.map((span) => ({
+				...span,
+				start_time: span.start_time * 1000, // Convert to milliseconds
+				end_time: span.end_time * 1000, // Convert to milliseconds
+			}));
+			return data;
 		},
 
 		// GET /api/v1/users/{username}/projects Get user projects recently worked on (last 30 days)

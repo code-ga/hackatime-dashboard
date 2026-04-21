@@ -122,3 +122,5 @@ GET /api/v1/authenticated/heartbeats/latest Get latest heartbeat
 - get commits from github at the time from the devlog to that time
 - draft the devlog 
 - generate and what image that we need
+
+# The animation that snake eating the heatmap
