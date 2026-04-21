@@ -2,41 +2,41 @@
 what api i need to considering :?
 
 ## Stats
-GET/api/v1/stats Get total coding time (Admin Only)
+GET/api/v1/stats Get total coding time (Admin Only) (skip)
 
 
 
-GET /api/v1/users/{username}/stats Get user stats
+GET /api/v1/users/{username}/stats Get user stats (implmented)
 
 
 ## Users
 
 
-GET /api/v1/users/{username}/heartbeats/spans Get heartbeat spans
+GET /api/v1/users/{username}/heartbeats/spans Get heartbeat spans (implemented)
 
 
 
-GET /api/v1/users/{username}/trust_factor Get trust factor
+GET /api/v1/users/{username}/trust_factor Get trust factor (skip)
 
 
 
-GET /api/v1/users/{username}/projects Get user projects
+GET /api/v1/users/{username}/projects Get user projects (implementd)
 
 
 
-GET /api/v1/users/{username}/project/{project_name} Get specific project stats
+GET /api/v1/users/{username}/project/{project_name} Get specific project stats (implementd)
 
 
 
-GET /api/v1/users/{username}/projects/details Get detailed project stats
+GET /api/v1/users/{username}/projects/details Get detailed project stats (implementd)
 
 
 
-GET /api/v1/users/lookup_email/{email} Lookup user by email
+GET /api/v1/users/lookup_email/{email} Lookup user by email (skip)
 
 
 
-GET /api/v1/users/lookup_slack_uid/{slack_uid} Lookup user by Slack UID
+GET /api/v1/users/lookup_slack_uid/{slack_uid} Lookup user by Slack UID (skip)
 
 ## My Projects
 
