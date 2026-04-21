@@ -89,3 +89,28 @@ Added in `app/globals.css`:
 - Loading states show skeleton animations while fetching data
 - Error states display friendly error messages
 - Type definition for `GetAnyUserHeartbeatsSpansResponse.spans` was updated from tuple to array type
+
+## Activity Timeline Snake Animation
+
+### Changes Made to `activity-timeline.tsx`
+
+1. **Expanded Heatmap to Full Year**: Changed from showing last 30 days to full 365 days by generating all dates in the past year and filling missing dates with 0 duration.
+
+2. **Added Snake Animation**:
+   - CSS keyframes (`snake-head`, `cell-eaten`, `cell-pulse`) added in `globals.css`
+   - Animation uses staggered delays with `calc(var(--cell-index) * 100ms)` per cell
+   - Auto-starts on component mount after 500ms delay
+   - Play/Replay button added to restart animation
+
+3. **Implementation Details**:
+   - Uses `useState` for `isAnimating` and `animationProgress`
+   - Uses `useEffect` with `requestAnimationFrame` for smooth animation
+   - Uses `useMemo` for computed values (heatmap, yearDates, maxDuration, etc.)
+   - Each cell has `--cell-index` CSS custom property for staggered animation delay
+   - Cells glow with box-shadow when the snake passes ("eaten" effect)
+   - Current snake head cell gets `snake-head` class with scale animation
+
+4. **Performance Considerations**:
+   - 365 cells × 100ms = ~36.5 seconds total animation duration
+   - Uses `will-change` via CSS animations
+   - Uses `requestAnimationFrame` for smooth 60fps updates

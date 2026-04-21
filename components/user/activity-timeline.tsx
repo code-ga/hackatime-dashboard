@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { GetAnyUserHeartbeatsSpansResponse } from "@/types/hackatime";
 
@@ -38,8 +39,104 @@ function getActivityHeatmap(
 	return heatmap;
 }
 
+function generateYearDates(
+	heatmap: Map<string, number>,
+): { date: string; duration: number; index: number }[] {
+	const today = new Date();
+	const oneYearAgo = new Date(today);
+	oneYearAgo.setFullYear(today.getFullYear() - 1);
+
+	const dates: { date: string; duration: number; index: number }[] = [];
+	let index = 0;
+
+	const current = new Date(oneYearAgo);
+	while (current <= today) {
+		const dateKey = current.toISOString().split("T")[0];
+		const duration = heatmap.get(dateKey) || 0;
+		dates.push({ date: dateKey, duration, index });
+		current.setDate(current.getDate() + 1);
+		index++;
+	}
+
+	return dates;
+}
+
 export function ActivityTimeline({ heartbeats }: ActivityTimelineProps) {
-	if (!heartbeats || heartbeats.spans.length === 0) {
+	const [isAnimating, setIsAnimating] = useState(false);
+	const [animationProgress, setAnimationProgress] = useState(0);
+
+	const heatmap = useMemo(() => {
+		if (!heartbeats || heartbeats.spans.length === 0) return null;
+		return getActivityHeatmap(heartbeats.spans);
+	}, [heartbeats]);
+
+	const yearDates = useMemo(() => {
+		if (!heatmap) return [];
+		return generateYearDates(heatmap);
+	}, [heatmap]);
+
+	const maxDuration = useMemo(() => {
+		if (!heatmap) return 0;
+		return Math.max(...heatmap.values());
+	}, [heatmap]);
+
+	const totalCells = yearDates.length;
+	const totalCodingTime = useMemo(() => {
+		if (!heatmap) return 0;
+		return Array.from(heatmap.values()).reduce((sum, dur) => sum + dur, 0);
+	}, [heatmap]);
+
+	const daysWithActivity = useMemo(() => {
+		if (!heatmap) return 0;
+		return Array.from(heatmap.values()).filter((d) => d > 0).length;
+	}, [heatmap]);
+
+	const avgPerDay =
+		daysWithActivity > 0 ? totalCodingTime / daysWithActivity : 0;
+
+	useEffect(() => {
+		if (!isAnimating) return;
+
+		const duration = totalCells * 100;
+		const startTime = Date.now();
+
+		const animate = () => {
+			const elapsed = Date.now() - startTime;
+			const progress = Math.min(elapsed / duration, 1);
+			setAnimationProgress(progress);
+
+			if (progress < 1) {
+				requestAnimationFrame(animate);
+			} else {
+				setIsAnimating(false);
+			}
+		};
+
+		requestAnimationFrame(animate);
+	}, [isAnimating, totalCells]);
+
+	useEffect(() => {
+		const timer = setTimeout(() => {
+			setIsAnimating(true);
+		}, 500);
+		return () => clearTimeout(timer);
+	}, []);
+
+	const handlePlay = () => {
+		setAnimationProgress(0);
+		setIsAnimating(true);
+	};
+
+	const currentSnakeIndex = Math.floor(animationProgress * totalCells);
+
+	console.log("Heatmap:", heatmap);
+	console.log("Year dates:", yearDates);
+	console.log("Max duration:", maxDuration);
+	console.log("Total coding time:", totalCodingTime);
+	console.log("Days with activity:", daysWithActivity);
+	console.log("Avg per day:", avgPerDay);
+
+	if (!heatmap) {
 		return (
 			<Card className="border-muted bg-card/50">
 				<CardContent className="p-6">
@@ -51,48 +148,45 @@ export function ActivityTimeline({ heartbeats }: ActivityTimelineProps) {
 		);
 	}
 
-	const heatmap = getActivityHeatmap(heartbeats.spans);
-	const sortedDates = Array.from(heatmap.keys()).sort().slice(-30);
-	const maxDuration = Math.max(...heatmap.values());
-
-	const totalCodingTime = Array.from(heatmap.values()).reduce(
-		(sum, dur) => sum + dur,
-		0,
-	);
-	const avgPerDay = totalCodingTime / sortedDates.length;
-
-	console.log(
-		"Heatmap data:",
-		heatmap,
-		"Sorted dates:",
-		sortedDates,
-		"Max duration:",
-		maxDuration,
-		"Total coding time:",
-		totalCodingTime,
-		"Avg per day:",
-		avgPerDay,
-		"Heartbeats spans:",
-		heartbeats.spans,
-	);
 	return (
 		<div className="space-y-4">
 			<Card className="border-muted bg-card/50">
-				<CardHeader className="pb-2">
+				<CardHeader className="pb-2 flex flex-row items-center justify-between">
 					<CardTitle className="font-mono text-sm">Activity Heatmap</CardTitle>
+					<button
+						onClick={handlePlay}
+						className="text-xs font-mono text-cyan hover:text-cyan/80 transition-colors"
+					>
+						{isAnimating ? "▶ Playing..." : "▶ Replay"}
+					</button>
 				</CardHeader>
 				<CardContent>
 					<div className="space-y-3">
 						<div className="flex flex-wrap gap-1">
-							{sortedDates.map((date) => {
-								const duration = heatmap.get(date) || 0;
-								const intensity = duration / maxDuration;
+							{yearDates.map((item) => {
+								const { date, duration, index } = item;
+								const intensity = duration / (maxDuration || 1);
+								const isSnakeHead = index === currentSnakeIndex && isAnimating;
+								const isEaten = index <= currentSnakeIndex && isAnimating;
 
 								return (
 									<div
 										key={date}
-										className={`w-3 h-3 rounded-sm ${getIntensityColor(duration)}`}
-										style={{ opacity: 0.3 + intensity * 0.7 }}
+										className={`w-3 h-3 rounded-sm ${getIntensityColor(duration)} ${isSnakeHead ? "snake-head" : ""} ${isEaten ? "snake-cell" : ""}`}
+										style={
+											{
+												opacity: 0.3 + intensity * 0.7,
+												"--cell-index": index,
+												"--cell-color":
+													duration >= 3600
+														? "oklch(0.758 0.252 145.85)"
+														: duration >= 1800
+															? "oklch(0.858 0.202 200.5)"
+															: duration >= 900
+																? "oklch(0.658 0.252 320.36)"
+																: "oklch(0.556 0 0)",
+											} as React.CSSProperties
+										}
 										title={`${date}: ${formatDuration(duration)}`}
 									/>
 								);
@@ -119,7 +213,7 @@ export function ActivityTimeline({ heartbeats }: ActivityTimelineProps) {
 				</CardHeader>
 				<CardContent>
 					<div className="space-y-2 max-h-64 overflow-y-auto">
-						{heartbeats.spans
+						{heartbeats?.spans
 							.slice(0, 20)
 							.sort(
 								(a, b) =>
@@ -170,7 +264,7 @@ export function ActivityTimeline({ heartbeats }: ActivityTimelineProps) {
 							Total Sessions
 						</p>
 						<p className="text-2xl font-bold font-mono text-magenta">
-							{heartbeats.spans.length}
+							{heartbeats?.spans.length ?? 0}
 						</p>
 					</CardContent>
 				</Card>
