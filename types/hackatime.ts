@@ -41,6 +41,88 @@ export type GetAnyUserStatsInput = {
 	};
 };
 
+// GET /api/v1/authenticated/me Get current user info
+export type GetAuthenticatedMeResponse = {
+	id: number;
+	emails: string[];
+	slack_id?: string;
+	github_username?: string;
+	trust_factor: {
+		trust_level: string;
+		trust_value: number;
+	};
+};
+
+// GET /api/v1/authenticated/hours Get hours
+export type GetAuthenticatedHoursInput = {
+	parameters: Record<string, never>;
+	query?: {
+		start_date?: `${number}-${number}-${number}`; // YYYY-MM-DD
+		end_date?: `${number}-${number}-${number}`; // YYYY-MM-DD
+	};
+};
+export type GetAuthenticatedHoursResponse = {
+	start_date: string; // ISO 8601 format
+	end_date: string; // ISO 8601 format
+	total_seconds: number; // total coding time in seconds
+};
+
+// GET /api/v1/authenticated/streak Get streak
+export type GetAuthenticatedStreakResponse = {
+	streak_days: number; // current streak in days
+};
+
+// GET /api/v1/authenticated/projects Get projects
+export type GetAuthenticatedProjectsInput = {
+	parameters: Record<string, never>;
+	query?: {
+		include_archived?: boolean; // if true, include archived projects in the response (default: false)
+		projects?: string; // comma-separated list of project names
+		since?: string; // Project discovery start time (ISO 8601)
+		until?: string; // Project discovery end time (ISO 8601)
+		until_date?: string; // Alias for until
+		start?: string; // Stats start time (ISO 8601)
+		end?: string; // Stats end time (ISO 8601)
+		start_date?: string; // Alias for start
+		end_date?: string; // Alias for end
+	};
+};
+export type GetAuthenticatedProjectsResponse = {
+	projects: {
+		name: string;
+		total_seconds: number;
+		percent: number;
+		most_recent_heartbeat?: string; // ISO 8601 format
+		languages: string[];
+		archived: boolean;
+	}[];
+};
+
+// GET /api/v1/authenticated/api_keys Get API keys
+export type GetAuthenticatedApiKeysResponse = {
+	token: string;
+};
+
+// GET /api/v1/authenticated/heartbeats/latest Get latest heartbeat
+export type GetAuthenticatedLatestHeartbeatResponse = {
+	id: number;
+	created_at: string; // ISO 8601 format
+	time: number; // time of the heartbeat in seconds
+	category: string;
+	project: string;
+	language: string;
+	editor: string;
+	operating_system: string;
+	machine: string;
+	entity: string;
+};
+
+// Authenticated namespace input types (no parameters needed for these endpoints)
+export type AuthenticatedEndpointInput = {
+	parameters: Record<string, never>;
+	query?: Record<string, string | number | boolean>;
+};
+
 // GET /api/v1/users/{username}/heartbeats/spans Get heartbeat spans
 export type GetAnyUserHeartbeatsSpansResponse = {
 	spans: {

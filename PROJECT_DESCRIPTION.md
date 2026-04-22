@@ -41,12 +41,76 @@ Access any Hackatime user's public profile by visiting `/user/{username}`.
 - Staggered animations with delays for list items
 - Smooth transitions between states
 
+## Authenticated Dashboard (`/dashboard`)
+
+Access your personal Hackatime data by visiting `/dashboard` (requires authentication via OAuth).
+
+### Components
+- `app/dashboard/page.tsx` - Main dashboard page with full cyberpunk redesign
+- Uses `hackatimeApi.authenticated.*` methods from `lib/hackatime.ts`
+
+### API Functions Used
+- `hackatimeApi.authenticated.getMe()` - Get current user profile (username, email, trust level/value, id)
+- `hackatimeApi.authenticated.getHours()` - Get coding hours (total_seconds, start_date, end_date)
+- `hackatimeApi.authenticated.getStreak()` - Get streak data (streak_days)
+- `hackatimeApi.authenticated.getProjects()` - Get user's projects (name, total_seconds, percent, languages, archived, most_recent_heartbeat)
+- `hackatimeApi.authenticated.getLatestHeartbeat()` - Get current activity (ALL fields: id, created_at, time, category, project, language, editor, operating_system, machine, entity)
+
+### UI Sections (Cyberpunk Redesign)
+
+1. **Hero Section** (`HeroSection`)
+   - Animated avatar with trust-level glow effect (green/cyan/magenta based on trust level)
+   - Username with neon text effect
+   - Quick stats: total time, streak days, user ID
+   - Trust factor badge
+
+2. **Hours Card** (`HoursCard`)
+   - Large neon green display showing hours and minutes
+   - Visual progress bar showing daily progress
+   - Date range display
+
+3. **Streak Card** (`StreakCard`)
+   - Fire/flame animation for active streaks (SVG with `animate-fire-flicker`)
+   - Pulsing dot indicators for streak days
+   - Animated glow effect
+
+4. **Live Activity Card** (`LiveActivityCard`)
+   - Full heartbeat data display (OS, machine, entity, category)
+   - All 10 fields from API now displayed
+   - Language badges with color coding
+
+5. **Projects Grid** (`ProjectsGrid`)
+   - 2-column card layout showing top 6 projects
+   - Progress bars for each project
+   - Language badges from the `languages` array field
+   - Archived indicator
+
+6. **System Info Panel** - Integrated into Live Activity Card
+
+### Cyberpunk Loading State (`LoadingState`)
+- Uses `cyberpunk-skeleton` class with neon pulse animation
+- Grid background pattern
+- Staggered skeleton loaders for different sections
+
+### Cyberpunk Error State (`ErrorState`)
+- Red border card with glitch animation effect
+- Terminal-style error message
+
+### Animations Added (`globals.css`)
+- `neon-pulse` - Loading skeleton pulse
+- `fire-flicker` - Streak fire animation
+- `glitch` - Error state glitch effect
+- `scanline` - Scanline overlay effect
+- `cyberpunk-skeleton` - Loading skeleton utility
+- `scanline-overlay` - Scanline overlay utility
+
 ## File Structure
 
 ```
 app/
-├── user/[username]/page.tsx     # User profile page
-└── globals.css                  # Tailwind theme with cyberpunk colors
+├── dashboard/page.tsx           # Authenticated user dashboard
+├── user/[username]/page.tsx   # Public user profile page
+└── globals.css                # Tailwind theme with cyberpunk colors
 
 components/
 ├── user/                        # User profile components

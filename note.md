@@ -92,28 +92,47 @@ GET /my/heartbeat_imports/{id} Get Heartbeat Import Status
 
 ## Authenticated
 
+All authenticated endpoints are now implemented via the `authenticated` namespace in `lib/hackatime.ts`.
 
-GET /api/v1/authenticated/me Get current user info
+**Usage (Client Components only):**
 
+```typescript
+import { hackatimeApi } from "@/lib/hackatime";
 
+// Get current user info
+const user = await hackatimeApi.authenticated.getMe();
 
-GET /api/v1/authenticated/hours Get hours
+// Get hours stats
+const hours = await hackatimeApi.authenticated.getHours();
 
+// Get streak info
+const streak = await hackatimeApi.authenticated.getStreak();
 
+// Get user's projects
+const projects = await hackatimeApi.authenticated.getProjects();
 
-GET /api/v1/authenticated/streak Get streak
+// Get API keys
+const apiKeys = await hackatimeApi.authenticated.getApiKeys();
 
+// Get latest heartbeat
+const latestHeartbeat = await hackatimeApi.authenticated.getLatestHeartbeat();
+```
 
+**Important:** These methods use `authFetcher` which reads `access_token` from `localStorage`. They only work in client-side code (within `useEffect` or client components). Calling them server-side will throw an error.
 
-GET /api/v1/authenticated/projects Get projects
+---
 
+GET /api/v1/authenticated/me Get current user info (implemented)
 
+GET /api/v1/authenticated/hours Get hours (implemented)
 
-GET /api/v1/authenticated/api_keys Get API keys
+GET /api/v1/authenticated/streak Get streak (implemented)
 
+GET /api/v1/authenticated/projects Get projects (implemented)
 
+GET /api/v1/authenticated/api_keys Get API keys (implemented)
 
-GET /api/v1/authenticated/heartbeats/latest Get latest heartbeat
+GET /api/v1/authenticated/heartbeats/latest Get latest heartbeat (implemented)
 
 
 # Automatic Devlog Generated
@@ -124,3 +143,7 @@ GET /api/v1/authenticated/heartbeats/latest Get latest heartbeat
 - generate and what image that we need
 
 # The animation that snake eating the heatmap
+
+# live active popup pet for user can play together
+
+# the timeline of file that user edit
