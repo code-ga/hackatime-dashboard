@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { User } from "../types/User";
+import { ThemeToggle } from "@/components/theme-toggle";
 import {
 	Card,
 	CardHeader,
@@ -50,6 +51,9 @@ export default function Dashboard() {
 
 	return (
 		<div className="p-6">
+			<div className="flex justify-end mb-4">
+				<ThemeToggle />
+			</div>
 			<Card className="rounded-xl border mb-6">
 				<CardContent className="py-4 flex items-center gap-3">
 					<div className="w-10 h-10 bg-purple-600/20 rounded-lg flex items-center justify-center">

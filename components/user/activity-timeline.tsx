@@ -61,6 +61,22 @@ function generateYearDates(
 	return dates;
 }
 
+function SnakeSVG() {
+	return (
+		<svg width={300} height={100} viewBox="0 0 300 100">
+			<path
+				d="M20 50 L280 50"
+				fill="none"
+				stroke="#22c55e"
+				strokeWidth={12}
+				strokeLinecap="round"
+			/>
+
+			<circle cx={280} cy={50} r={8} fill="#16a34a" />
+		</svg>
+	);
+}
+
 export function ActivityTimeline({ heartbeats }: ActivityTimelineProps) {
 	const [isAnimating, setIsAnimating] = useState(false);
 	const [animationProgress, setAnimationProgress] = useState(0);
@@ -157,12 +173,12 @@ export function ActivityTimeline({ heartbeats }: ActivityTimelineProps) {
 						onClick={handlePlay}
 						className="text-xs font-mono text-cyan hover:text-cyan/80 transition-colors"
 					>
-						{isAnimating ? "▶ Playing..." : "▶ Replay"}
+						{isAnimating ? "🐍 Playing..." : "🐍 Replay"}
 					</button>
 				</CardHeader>
 				<CardContent>
 					<div className="space-y-3">
-						<div className="flex flex-wrap gap-1">
+						<div className="flex flex-wrap gap-1 relative">
 							{yearDates.map((item) => {
 								const { date, duration, index } = item;
 								const intensity = duration / (maxDuration || 1);
@@ -191,6 +207,17 @@ export function ActivityTimeline({ heartbeats }: ActivityTimelineProps) {
 									/>
 								);
 							})}
+							{isAnimating && (
+								<div
+									className="absolute text-lg leading-none transition-all duration-100"
+									style={{
+										left: `${(currentSnakeIndex % 52) * 14}px`,
+										top: `${Math.floor(currentSnakeIndex / 52) * 14}px`,
+									}}
+								>
+									<SnakeSVG></SnakeSVG>
+								</div>
+							)}
 						</div>
 
 						<div className="flex items-center gap-4 text-xs text-muted-foreground font-mono">

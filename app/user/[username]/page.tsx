@@ -5,6 +5,7 @@ import { UserProfileCard } from "@/components/user/user-profile-card";
 import { ProjectList } from "@/components/user/project-list";
 import { ActivityTimeline } from "@/components/user/activity-timeline";
 import { UserSearch } from "@/components/user/user-search";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { GetAnyUserStatsResponse } from "@/types/hackatime";
@@ -111,6 +112,9 @@ export default function UserPage({ params }: UserPageProps) {
 	return (
 		<div className="min-h-screen bg-background cyberpunk-grid p-6">
 			<div className="max-w-6xl mx-auto space-y-6">
+				<div className="flex justify-end">
+					<ThemeToggle />
+				</div>
 				<UserSearch />
 
 				<UserProfileCard username={username} stats={stats} />
