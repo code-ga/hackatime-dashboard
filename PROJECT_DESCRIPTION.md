@@ -113,6 +113,11 @@ app/
 └── globals.css                # Tailwind theme with cyberpunk colors
 
 components/
+├── dashboard/                  # Dashboard components (new)
+│   ├── filter-bar.tsx         # Date, project, category filters
+│   ├── language-chart.tsx     # Languages donut chart
+│   ├── editor-chart.tsx       # Editors donut chart
+│   └── os-chart.tsx         # OS display (limited)
 ├── user/                        # User profile components
 │   ├── user-profile-card.tsx
 │   ├── project-list.tsx
@@ -178,3 +183,47 @@ Added in `app/globals.css`:
    - 365 cells × 100ms = ~36.5 seconds total animation duration
    - Uses `will-change` via CSS animations
    - Uses `requestAnimationFrame` for smooth 60fps updates
+
+## Filter System & Analytics Charts
+
+### Components Added
+
+1. **Filter Bar** (`components/dashboard/filter-bar.tsx`)
+   - Date range picker (start_date, end_date)
+   - Project dropdown (dynamic from user's projects)
+   - Category dropdown (ai+coding, coding, writing+docs, writing+tests)
+   - Reset button to clear all filters
+   - Filter state managed in parent page and passed to API calls
+
+2. **Language Chart** (`components/dashboard/language-chart.tsx`)
+   - Donut/pie chart showing top 8 languages
+   - SVG-based rendering with color coding
+   - Displays percentage and language name
+   - Uses `stats.data.languages[]` from API
+
+3. **Editor Chart** (`components/dashboard/editor-chart.tsx`)
+   - Donut/pie chart showing top 6 editors
+   - Uses `features=editors` query param in API
+   - Displays percentage and editor name
+
+4. **OS Chart** (`components/dashboard/os-chart.tsx`)
+   - Shows current OS from latest heartbeat
+   - Note: Historical OS data not available in API
+   - Limited functionality per API constraints
+
+### API Updates
+
+Added to `lib/hackatime.ts`:
+- `hackatimeApi.authenticated.getStats()` - New endpoint with filter support
+- `features` query param for languages, editors, projects data
+
+Added to `types/hackatime.ts`:
+- `GetAuthenticatedStatsInput` - Filter query parameters
+- `GetAuthenticatedStatsResponse` - Stats response type
+
+### Dashboard Integration
+
+The `/dashboard` page now includes:
+- Filter bar with date range, project, and category filters
+- Three chart cards (Language, Editor, OS) below the stats cards
+- Filters are applied to all API calls for hours, projects, and stats

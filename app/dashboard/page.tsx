@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { hackatimeApi } from "@/lib/hackatime";
 import type {
 	GetAuthenticatedMeResponse,
@@ -8,6 +8,7 @@ import type {
 	GetAuthenticatedStreakResponse,
 	GetAuthenticatedProjectsResponse,
 	GetAuthenticatedLatestHeartbeatResponse,
+	GetAnyUserStatsResponse,
 } from "@/types/hackatime";
 import { ThemeToggle } from "@/components/theme-toggle";
 import {
@@ -18,6 +19,10 @@ import {
 } from "../../components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+import { FilterBar, type FilterState } from "@/components/dashboard/filter-bar";
+import { LanguageChart } from "@/components/dashboard/language-chart";
+import { EditorChart } from "@/components/dashboard/editor-chart";
+import { OSChart } from "@/components/dashboard/os-chart";
 
 function formatTime(seconds: number): string {
 	const hours = Math.floor(seconds / 3600);
@@ -572,29 +577,61 @@ export default function Dashboard() {
 		useState<GetAuthenticatedProjectsResponse | null>(null);
 	const [latestHeartbeat, setLatestHeartbeat] =
 		useState<GetAuthenticatedLatestHeartbeatResponse | null>(null);
+	const [stats, setStats] = useState<GetAnyUserStatsResponse | null>(null);
 	const [error, setError] = useState<string | null>(null);
 	const [isLoading, setIsLoading] = useState(true);
+	const [filters, setFilters] = useState<FilterState>({
+		startDate: "",
+		endDate: "",
+		project: "",
+		category: "",
+	});
 
 	useEffect(() => {
 		const fetchData = async () => {
 			try {
 				setIsLoading(true);
-				const [userData, hoursData, streakData, projectsData, heartbeatData] =
+
+				const userData = await hackatimeApi.authenticated.getMe();
+				setUser(userData);
+
+				const username = userData.slack_id || userData.github_username;
+				if (!username) {
+					setError("No username found for user");
+					setIsLoading(false);
+					return;
+				}
+
+				const query: Record<string, string> = {};
+				if (filters.startDate) query.start_date = filters.startDate;
+				if (filters.endDate) query.end_date = filters.endDate;
+				if (filters.project) query.filter_by_project = filters.project;
+				if (filters.category) query.filter_by_category = filters.category;
+
+				const featureQuery = {
+					features: "languages,editors",
+					...query,
+				};
+
+				const [hoursData, streakData, projectsData, heartbeatData, statsData] =
 					await Promise.all([
-						hackatimeApi.authenticated.getMe(),
-						hackatimeApi.authenticated.getHours({ parameters: {}, query: {} }),
+						hackatimeApi.authenticated.getHours({ parameters: {}, query }),
 						hackatimeApi.authenticated.getStreak(),
 						hackatimeApi.authenticated.getProjects({
 							parameters: {},
 							query: {},
 						}),
 						hackatimeApi.authenticated.getLatestHeartbeat(),
+						hackatimeApi.stats.getAnyUserStats({
+							parameters: { username },
+							query: featureQuery,
+						}),
 					]);
-				setUser(userData);
 				setHours(hoursData);
 				setStreak(streakData);
 				setProjects(projectsData);
 				setLatestHeartbeat(heartbeatData);
+				setStats(statsData);
 			} catch (err) {
 				console.error("Failed to fetch authenticated data:", err);
 				setError("Failed to load dashboard data. Please try again.");
@@ -603,6 +640,10 @@ export default function Dashboard() {
 			}
 		};
 		fetchData();
+	}, [filters]);
+
+	const handleFilterChange = useCallback((newFilters: FilterState) => {
+		setFilters(newFilters);
 	}, []);
 
 	if (error) {
@@ -628,10 +669,18 @@ export default function Dashboard() {
 
 			<HeroSection user={user} hours={hours} streak={streak} />
 
+			<FilterBar projects={projects} onFilterChange={handleFilterChange} />
+
 			<div className="grid grid-cols-1 md:grid-cols-3 gap-4">
 				<HoursCard hours={hours} />
 				<StreakCard streak={streak} />
 				<LiveActivityCard heartbeat={latestHeartbeat} />
+			</div>
+
+			<div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+				<LanguageChart stats={stats} />
+				<EditorChart stats={stats} />
+				<OSChart heartbeat={latestHeartbeat} />
 			</div>
 
 			<ProjectsGrid projects={projects} />
