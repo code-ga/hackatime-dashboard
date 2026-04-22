@@ -23,6 +23,7 @@ import { FilterBar, type FilterState } from "@/components/dashboard/filter-bar";
 import { LanguageChart } from "@/components/dashboard/language-chart";
 import { EditorChart } from "@/components/dashboard/editor-chart";
 import { OSChart } from "@/components/dashboard/os-chart";
+import { PetPiP } from "../../components/PetPiP";
 
 function formatTime(seconds: number): string {
 	const hours = Math.floor(seconds / 3600);
@@ -236,6 +237,7 @@ function HeroSection({ user, hours, streak }: HeroSectionProps) {
 									<span className="text-sm text-muted-foreground">m</span>
 								</p>
 							</div>
+							<PetPiP></PetPiP>
 							<div className="space-y-1">
 								<p className="text-xs text-muted-foreground font-mono uppercase tracking-wider">
 									Streak

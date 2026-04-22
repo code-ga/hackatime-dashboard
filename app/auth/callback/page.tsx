@@ -34,7 +34,7 @@ export default function CallbackPage() {
 
 			// store token
 			localStorage.setItem("access_token", data.access_token);
-      console.log("Access token:", data.access_token);
+			console.log("Access token:", data.access_token);
 
 			// redirect to dashboard
 			router.push("/dashboard");

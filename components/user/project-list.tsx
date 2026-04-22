@@ -36,7 +36,9 @@ function formatDate(dateStr: string): string {
 export function ProjectList({ projects, stats }: ProjectListProps) {
 	const projectStats = stats.data.projects;
 	console.log("Project stats:", stats, "Projects details:", projects);
-	const maxSeconds = Math.max(...projectStats?.map((p) => p.total_seconds) || [0]);
+	const maxSeconds = Math.max(
+		...(projectStats?.map((p) => p.total_seconds) || [0]),
+	);
 
 	if (!projects || projects.projects.length === 0) {
 		return (
