@@ -23,6 +23,8 @@ export interface PetWorldState {
 		x: number;
 		y: number;
 	};
+	score: number;
+	lastPetVisible: boolean;
 }
 
 function getScreenDimensions() {
@@ -54,6 +56,8 @@ export const petWorldState: PetWorldState = {
 		x: getScreenDimensions().width / 2,
 		y: getScreenDimensions().height / 2,
 	},
+	score: 0,
+	lastPetVisible: false,
 };
 
 export function updatePetPosition(
@@ -93,6 +97,27 @@ export function updateScreenDimensions(width: number, height: number) {
 export function updateFixedPositionOnScreen(x: number, y: number) {
 	petWorldState.fixedPositionOnScreen.x = x;
 	petWorldState.fixedPositionOnScreen.y = y;
+}
+
+export function teleportPet() {
+	const screen = getScreenDimensions();
+	const newX = Math.random() * (screen.width - 80) + 40;
+	const newY = Math.random() * (screen.height - 80) + 40;
+	updateFixedPositionOnScreen(newX, newY);
+	updatePetPosition(newX, newY, 0, 0);
+}
+
+export function incrementScore(points: number = 1) {
+	petWorldState.score += points;
+}
+
+export function resetScore() {
+	petWorldState.score = 0;
+	petWorldState.lastPetVisible = false;
+}
+
+export function setLastPetVisible(visible: boolean) {
+	petWorldState.lastPetVisible = visible;
 }
 
 export function getState(): PetWorldState {

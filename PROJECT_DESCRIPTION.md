@@ -227,43 +227,56 @@ Added to `types/hackatime.ts`:
 
 ### Component: `components/PetPiP.tsx`
 
-Renders an animated pet (PetSvg) in a Picture-in-Picture window that follows the mouse cursor movement.
+Renders an animated pet in a Picture-in-Picture window using direct Canvas 2D drawing.
 
 #### How It Works
 
-1. **Opening PiP**: Clicking "Open Pet" button calls `handleOpenPet`, which uses the `documentPictureInPicture.requestWindow()` API to create a small 300x200 borderless window.
-2. **Style Isolation**: Copies all CSS stylesheets from the main document into the PiP window to preserve visual styling (Tailwind classes, animations).
-3. **React Rendering**: Mounts a React root inside the PiP window and renders `<PiPContent>` which displays the pet SVG.
-4. **Movement Tracking**: The `trackMovement` callback runs on every animation frame, comparing the PiP window's `screenX/screenY` against the last known position stored in `positionRef`. When position changes, `setPosition` updates React state.
-5. **Cleanup**: The `pagehide` event on the PiP window cancels the animation frame when the window closes.
+1. **Opening PiP**: Clicking "Open Pet" calls `handleOpenPet`, using `documentPictureInPicture.requestWindow()` to create a 300x200 borderless window.
+2. **Style Isolation**: Copies all CSS stylesheets from the main document into the PiP window to preserve Tailwind classes.
+3. **Canvas Rendering**: Creates a `<canvas>` element and uses `renderCanvas()` to draw the pet frame-by-frame with the Canvas 2D API.
+4. **Movement Tracking**: `trackMovement` runs every animation frame, reading the PiP window's `screenX/Y` and updating `petWorldState.pipWindow` via `updatePipPosition`.
+5. **Fixed Pet Position**: Pet's screen coordinates are stored in `petWorldState.fixedPositionOnScreen` and remain constant; moving PiP window reveals different parts of the pet.
+6. **Scoring**: The render loop detects when the pet transitions from outside to inside the canvas and calls `incrementScore(1)`.
+7. **Cleanup**: The `pagehide` event cancels the animation frame and closes the PiP.
 
 #### Stale Closure Fix (Render Hell Resolution)
 
-**Problem**: The original `trackMovement` was defined inside `handleOpenPet` and directly accessed the `position` state variable. Since `trackMovement` was created once but called repeatedly via `requestAnimationFrame`, it captured a stale closure of `position` (value at the time `handleOpenPet` ran). This caused:
-- Every frame called `setPosition` with the same captured value
-- Unnecessary re-renders on every animation frame (render hell)
-- Position state never updated correctly in the closure
-
-**Solution** (lines 25-45):
-- Introduced `positionRef` to store the latest position outside React's render cycle
-- Sync `positionRef.current` to state via `useEffect` dependency on `position`
-- Extracted `trackMovement` to component level with `useCallback` and empty dependency array
-- Inside `trackMovement`, read `positionRef.current` instead of the stale `position` state
-- Only call `setPosition` when actual position change is detected
-
-This prevents unnecessary renders and ensures the movement tracking works correctly.
+**Problem**: The original `trackMovement` captured stale state causing infinite re-renders. See earlier section for details.
 
 #### API Used
 
-- `window.documentPictureInPicture.requestWindow(options)` - Creates PiP window
-- PiP Window properties: `screenX`, `screenY`, `closed`, `document`, `addEventListener`
+- `window.documentPictureInPicture.requestWindow(options)`
+- PiP Window: `screenX`, `screenY`, `closed`, `document`, `addEventListener`
 
-#### Technical Notes
+### Pet Visual Design & Effects
 
-- Uses `createRoot` from `react-dom/client` to render React inside PiP
-- Requires `use client` directive (uses browser APIs)
-- Type declaration extends `Window` interface for PiP API
-- The `pipWindowRef` holds the PiP window instance; `requestRef` tracks the animation frame ID
+The pet is drawn directly on a 2D canvas using Canvas API with multiple layers:
+
+**Body**
+- Radial gradient (pale pink `#FFDDFF` → hot pink `#FF69B4`)
+- Breathing animation: subtle 3% scale pulsing via sine wave
+- Outer glow aura with pulsing shadow blur
+
+**Facial Features**
+- Eyes: white ellipses with glow, dark pupils, and sparkling reflections
+- Nose: dark pink ellipse
+- Mouth: curved quadratic stroke
+- Blush: semi-transparent pink (70% opacity) on cheeks
+
+**Accessories**
+- Ears: triangular with linear gradient, inner ear details
+- Tail: curved quadratic stroke with wave animation
+- Paws: small ellipses at bottom
+
+**Particle Effects**
+- Sparkles: 4 rotating star particles with cross pattern (every 15 frames)
+- Hearts: 3 floating hearts drifting upward (every 30 frames)
+- Background: moving scanline, 20px cyan grid, floating particles
+- Teleport Burst: expanding pink concentric rings + radial sparkles when pet teleports (15 frames)
+
+**Direction Indicator**
+- Cyan arrow with glow that points to pet when off-screen
+- Orbiting ring around arrow base
 
 ## Screen Portal Effect (Virtual Pet)
 
@@ -274,58 +287,91 @@ The virtual pet exists in global screen coordinates and is visible through a Pic
 ### Components
 
 1. **`lib/pet-world.ts`** - Shared state singleton
-   - `PetWorldState` interface containing pet position, velocity, PiP window position, and PiP velocity
-   - Exports for reading/updating state
-   - Singleton `petWorldState` object shared between main document and PiP window
+   - `PetWorldState` interface containing:
+     - `pet`: position (x,y) and velocity
+     - `pipWindow`: position and size
+     - `pipVelocity`: window movement velocity
+     - `screen`: screen dimensions
+     - `fixedPositionOnScreen`: where the pet stays fixed on screen
+     - `score`: current gameplay score
+     - `lastPetVisible`: visibility state for scoring
+    - Exports for reading/updating state including `incrementScore`, `resetScore`, `setLastPetVisible`, `teleportPet`
+    - Singleton `petWorldState` object shared between main document and PiP window
 
-2. **`lib/pet-animation.ts`** - Animation loop module (simplified)
-   - **Pet Position Tracking**: Maintains pet at fixed position (no wandering or inertia)
-   - **PiP Velocity Tracker**: Tracks PiP window movement (though not used for physics)
-   - **Position Update Loop**: `requestAnimationFrame` loop updating shared state
+2. **`lib/pet-animation.ts`** - Animation loop module
+   - **Pet Position**: Maintains pet at `fixedPositionOnScreen` (no wandering)
+   - **PiP Tracking**: Updates `petWorldState.pipWindow` as the window moves via `updatePipPosition`
+   - **Scoring Integration**: Visibility detection and score increment handled in `renderCanvas`
+   - **Teleport**: When scored, `teleportPet()` is called to move pet to random location
+   - **Startup**: `startAnimation()` accepts optional custom fixed X/Y coordinates
 
 3. **`components/PetCanvas.tsx`** - Canvas rendering component (for React integration)
    - Renders pet SVG at calculated local position
    - Draws direction arrow when pet is outside
    - Reads from shared `petWorldState`
 
-4. **`components/PetPiP.tsx`** - Updated to use Canvas rendering
+4. **`components/PetPiP.tsx`** - Updated to use Canvas rendering with gameplay
    - Creates PiP window and starts animation loop
-   - Renders canvas directly in PiP window (no React mounting)
-   - Uses `renderCanvas` function with direct Canvas 2D API drawing
+   - Renders canvas directly in PiP window with full visual effects
+   - Scoring detection when pet enters view
+   - Teleportation triggers: pet moves to random location + burst effect
+   - UI controls for position, score reset, and Hackatime hours display
 
 ### Pet Behavior
 
-The pet remains at a fixed position at the center of the screen. The pet's position is set to the center of the screen when the animation starts and stays stationary thereafter, regardless of window resizing or movement.
+The pet remains at a **fixed screen position** (default: screen center). The position is configurable via the X/Y controls in the PetPiP UI. The pet does not move on its own — it's completely stationary, creating an X-ray scanner effect where the PiP window moves over the pet.
 
-### Key Formulas
+#### Teleportation
 
-- **Pet Position**: Fixed at initial position (no velocity applied)
-- **Portal Visibility Check**: `localX >= 0 && localX <= windowWidth && localY >= 0 && localY <= windowHeight`
-- **Direction Arrow Angle**: `atan2(pet.y - window.y, pet.x - window.x)`
+When the pet is **caught** (enters the PiP view), it **teleports instantly** to a random location on screen. This adds challenge: you must quickly move the PiP window to the new location to catch it again. A visual **teleport burst effect** (expanding pink rings and sparkles) appears at the teleport destination.
 
-### Pet Canvas Drawing
+#### Scoring
 
-The `renderCanvas` function in `PetPiP.tsx` draws the pet directly using Canvas 2D API:
-- Body: Pink gradient ellipse with shadow
-- Ears: Triangular shapes with inner color
-- Eyes: White ellipses with dark pupils and highlights
-- Mouth: Small ellipse with curved line
-- Blush: Semi-transparent pink ellipses
-- Shadow: Semi-transparent ellipse below body
+The PiP window acts as a scanner. You earn **+1 point** each time the pet **enters** the PiP view after being outside. The score is tracked globally and displayed in the control panel. A "+1!" popup provides visual feedback. Use the "Reset Score" button to zero the counter.
 
-### Screen Resize Handling
+### Gameplay: Pet Scanner Score Challenge
 
-When the main window or PiP window is resized:
-1. **PiP Window Resize**: The `resize` event listener on the PiP window calls `pipWindow.resizeTo()` to resize the PiP window and updates the canvas dimensions
-2. **Main Screen Resize**: The `resize` event listener on the main window updates the screen dimensions in `petWorldState`, which affects pet wandering boundaries and clamping
-3. **Minimum Size**: The PiP window has a minimum size of 200x150 to ensure the pet remains visible
+The PiP window acts as a scanner. You earn points each time the pet **enters** the PiP window's view. The goal is to move the PiP window to catch the pet.
+
+#### Scoring Mechanics
+
+- **+1 point** each time the pet becomes visible inside the PiP canvas after being outside
+- Score is tracked in global state (`petWorldState.score`)
+- Visual feedback: "+1!" popup appears when scoring
+- Score persists across PiP sessions (until manually reset)
+
+#### Teleportation Mechanic
+
+- When caught, the pet **waits 1 second** then **teleports** to a random location
+- **Teleport burst effect**: expanding pink concentric rings + radial sparkles at destination
+- The delay gives you a moment to celebrate your catch before the pet escapes
+- Increases challenge — you must quickly chase the pet to its new location
+- Pet cannot teleport while off-screen; scoring only triggers on catch
+
+#### Gameplay UI
+
+The PetPiP control panel displays:
+- **Current Score** - large neon cyan display
+- **Hackatime Hours** - shows your total coding time as motivation
+- **Position Controls** - X/Y inputs to set the pet's fixed screen location
+- **Pin Current** - button to pin pet at its current screen position
+- **Reset Score** - button to zero the score counter
+
+#### How to Play
+
+1. Click "Open Pet" to launch the PiP window
+2. The pet appears at a fixed location on your screen
+3. Drag the PiP window around to "scan" the pet
+4. When the pet enters view, you earn a point and it **waits 1 second** before teleporting to a new location
+5. Chase the pet to accumulate as many points as possible!
 
 ### Files Created/Modified
 
 | File | Action | Purpose |
 |------|--------|---------|
-| `lib/pet-world.ts` | CREATE | Shared state singleton |
-| `lib/pet-animation.ts` | CREATE | Animation loop, wander, physics |
-| `components/PetCanvas.tsx` | CREATE | Canvas rendering component (React) |
-| `components/PetPiP.tsx` | MODIFY | Switch to canvas rendering |
+| `lib/pet-world.ts` | CREATE | Shared state singleton, score tracking, teleport |
+| `lib/pet-animation.ts` | CREATE | Animation loop, fixed position |
+| `components/PetPiP.tsx` | MODIFY | Canvas rendering, scoring UI, teleport effect, gameplay |
+| `app/dashboard/page.tsx` | MODIFY | Pass totalHours prop to PetPiP |
 | `PROJECT_DESCRIPTION.md` | UPDATE | Document the feature |
+

@@ -237,7 +237,7 @@ function HeroSection({ user, hours, streak }: HeroSectionProps) {
 									<span className="text-sm text-muted-foreground">m</span>
 								</p>
 							</div>
-							<PetPiP></PetPiP>
+							<PetPiP totalHours={hours.total_seconds}></PetPiP>
 							<div className="space-y-1">
 								<p className="text-xs text-muted-foreground font-mono uppercase tracking-wider">
 									Streak
