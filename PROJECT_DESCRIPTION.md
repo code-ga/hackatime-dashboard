@@ -113,11 +113,13 @@ app/
 └── globals.css                # Tailwind theme with cyberpunk colors
 
 components/
+├── PetPiP.tsx                 # Pet picture-in-picture window component
+├── PetSvg.tsx                 # Animated pet SVG graphic
 ├── dashboard/                  # Dashboard components (new)
-│   ├── filter-bar.tsx         # Date, project, category filters
-│   ├── language-chart.tsx     # Languages donut chart
-│   ├── editor-chart.tsx       # Editors donut chart
-│   └── os-chart.tsx         # OS display (limited)
+│   ├── filter-bar.tsx
+│   ├── language-chart.tsx
+│   ├── editor-chart.tsx
+│   └── os-chart.tsx
 ├── user/                        # User profile components
 │   ├── user-profile-card.tsx
 │   ├── project-list.tsx
@@ -221,9 +223,109 @@ Added to `types/hackatime.ts`:
 - `GetAuthenticatedStatsInput` - Filter query parameters
 - `GetAuthenticatedStatsResponse` - Stats response type
 
-### Dashboard Integration
+## Pet Picture-in-Picture Feature
 
-The `/dashboard` page now includes:
-- Filter bar with date range, project, and category filters
-- Three chart cards (Language, Editor, OS) below the stats cards
-- Filters are applied to all API calls for hours, projects, and stats
+### Component: `components/PetPiP.tsx`
+
+Renders an animated pet (PetSvg) in a Picture-in-Picture window that follows the mouse cursor movement.
+
+#### How It Works
+
+1. **Opening PiP**: Clicking "Open Pet" button calls `handleOpenPet`, which uses the `documentPictureInPicture.requestWindow()` API to create a small 300x200 borderless window.
+2. **Style Isolation**: Copies all CSS stylesheets from the main document into the PiP window to preserve visual styling (Tailwind classes, animations).
+3. **React Rendering**: Mounts a React root inside the PiP window and renders `<PiPContent>` which displays the pet SVG.
+4. **Movement Tracking**: The `trackMovement` callback runs on every animation frame, comparing the PiP window's `screenX/screenY` against the last known position stored in `positionRef`. When position changes, `setPosition` updates React state.
+5. **Cleanup**: The `pagehide` event on the PiP window cancels the animation frame when the window closes.
+
+#### Stale Closure Fix (Render Hell Resolution)
+
+**Problem**: The original `trackMovement` was defined inside `handleOpenPet` and directly accessed the `position` state variable. Since `trackMovement` was created once but called repeatedly via `requestAnimationFrame`, it captured a stale closure of `position` (value at the time `handleOpenPet` ran). This caused:
+- Every frame called `setPosition` with the same captured value
+- Unnecessary re-renders on every animation frame (render hell)
+- Position state never updated correctly in the closure
+
+**Solution** (lines 25-45):
+- Introduced `positionRef` to store the latest position outside React's render cycle
+- Sync `positionRef.current` to state via `useEffect` dependency on `position`
+- Extracted `trackMovement` to component level with `useCallback` and empty dependency array
+- Inside `trackMovement`, read `positionRef.current` instead of the stale `position` state
+- Only call `setPosition` when actual position change is detected
+
+This prevents unnecessary renders and ensures the movement tracking works correctly.
+
+#### API Used
+
+- `window.documentPictureInPicture.requestWindow(options)` - Creates PiP window
+- PiP Window properties: `screenX`, `screenY`, `closed`, `document`, `addEventListener`
+
+#### Technical Notes
+
+- Uses `createRoot` from `react-dom/client` to render React inside PiP
+- Requires `use client` directive (uses browser APIs)
+- Type declaration extends `Window` interface for PiP API
+- The `pipWindowRef` holds the PiP window instance; `requestRef` tracks the animation frame ID
+
+## Screen Portal Effect (Virtual Pet)
+
+### Architecture: SharedState Pattern
+
+The virtual pet exists in global screen coordinates and is visible through a Picture-in-Picture window acting as a viewing portal. Since the PiP window is same-origin with the opener, JavaScript objects can be shared directly (no SharedWorker/BroadcastChannel needed). The main document's animation loop drives all state; the PiP window's canvas simply reads from shared state and renders.
+
+### Components
+
+1. **`lib/pet-world.ts`** - Shared state singleton
+   - `PetWorldState` interface containing pet position, velocity, PiP window position, and PiP velocity
+   - Exports for reading/updating state
+   - Singleton `petWorldState` object shared between main document and PiP window
+
+2. **`lib/pet-animation.ts`** - Animation loop module (simplified)
+   - **Pet Position Tracking**: Maintains pet at fixed position (no wandering or inertia)
+   - **PiP Velocity Tracker**: Tracks PiP window movement (though not used for physics)
+   - **Position Update Loop**: `requestAnimationFrame` loop updating shared state
+
+3. **`components/PetCanvas.tsx`** - Canvas rendering component (for React integration)
+   - Renders pet SVG at calculated local position
+   - Draws direction arrow when pet is outside
+   - Reads from shared `petWorldState`
+
+4. **`components/PetPiP.tsx`** - Updated to use Canvas rendering
+   - Creates PiP window and starts animation loop
+   - Renders canvas directly in PiP window (no React mounting)
+   - Uses `renderCanvas` function with direct Canvas 2D API drawing
+
+### Pet Behavior
+
+The pet remains at a fixed position at the center of the screen. The pet's position is set to the center of the screen when the animation starts and stays stationary thereafter, regardless of window resizing or movement.
+
+### Key Formulas
+
+- **Pet Position**: Fixed at initial position (no velocity applied)
+- **Portal Visibility Check**: `localX >= 0 && localX <= windowWidth && localY >= 0 && localY <= windowHeight`
+- **Direction Arrow Angle**: `atan2(pet.y - window.y, pet.x - window.x)`
+
+### Pet Canvas Drawing
+
+The `renderCanvas` function in `PetPiP.tsx` draws the pet directly using Canvas 2D API:
+- Body: Pink gradient ellipse with shadow
+- Ears: Triangular shapes with inner color
+- Eyes: White ellipses with dark pupils and highlights
+- Mouth: Small ellipse with curved line
+- Blush: Semi-transparent pink ellipses
+- Shadow: Semi-transparent ellipse below body
+
+### Screen Resize Handling
+
+When the main window or PiP window is resized:
+1. **PiP Window Resize**: The `resize` event listener on the PiP window calls `pipWindow.resizeTo()` to resize the PiP window and updates the canvas dimensions
+2. **Main Screen Resize**: The `resize` event listener on the main window updates the screen dimensions in `petWorldState`, which affects pet wandering boundaries and clamping
+3. **Minimum Size**: The PiP window has a minimum size of 200x150 to ensure the pet remains visible
+
+### Files Created/Modified
+
+| File | Action | Purpose |
+|------|--------|---------|
+| `lib/pet-world.ts` | CREATE | Shared state singleton |
+| `lib/pet-animation.ts` | CREATE | Animation loop, wander, physics |
+| `components/PetCanvas.tsx` | CREATE | Canvas rendering component (React) |
+| `components/PetPiP.tsx` | MODIFY | Switch to canvas rendering |
+| `PROJECT_DESCRIPTION.md` | UPDATE | Document the feature |
