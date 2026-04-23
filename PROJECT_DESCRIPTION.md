@@ -338,7 +338,7 @@ The PiP window acts as a scanner with a centered target reticle. You earn points
 
 #### Teleportation Mechanic
 
-- When caught, the pet **waits 1 second** then **teleports** to a random location
+- When caught, the pet **waits 1 second** then **teleports** to a random location within safe screen bounds (accounting for PiP window size to prevent off-screen centering)
 - **Teleport burst effect**: expanding pink concentric rings + radial sparkles
 - Target stays centered on PiP window after each catch
 - Pet teleports to new location, target remains centered for the next round

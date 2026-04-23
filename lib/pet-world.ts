@@ -40,10 +40,19 @@ function getScreenDimensions() {
 	return { width: 1920, height: 1080 };
 }
 
+function getInitialPetPosition() {
+	const screen = getScreenDimensions();
+	const marginX = 150;
+	const marginY = 100;
+	return {
+		x: Math.random() * (screen.width - 2 * marginX) + marginX,
+		y: Math.random() * (screen.height - 2 * marginY) + marginY,
+	};
+}
+
 export const petWorldState: PetWorldState = {
 	pet: {
-		x: Math.random() * getScreenDimensions().width,
-		y: Math.random() * getScreenDimensions().height,
+		...getInitialPetPosition(),
 		velocityX: 0,
 		velocityY: 0,
 	},
@@ -113,8 +122,12 @@ export function updateFixedPositionOnScreen(x: number, y: number) {
 
 export function teleportPet() {
 	const screen = getScreenDimensions();
-	const newX = Math.random() * (screen.width - 80) + 40;
-	const newY = Math.random() * (screen.height - 80) + 40;
+	// Adjust bounds to ensure PiP window can center on pet without going off-screen
+	// PiP is 300x200, so center at 150x100 from edges
+	const marginX = 150;
+	const marginY = 100;
+	const newX = Math.random() * (screen.width - 2 * marginX) + marginX;
+	const newY = Math.random() * (screen.height - 2 * marginY) + marginY;
 	updateFixedPositionOnScreen(newX, newY);
 	updatePetPosition(newX, newY, 0, 0);
 }
