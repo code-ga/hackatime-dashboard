@@ -24,7 +24,13 @@ export interface PetWorldState {
 		y: number;
 	};
 	score: number;
-	lastPetVisible: boolean;
+	lastPetOnTarget: boolean;
+	target: {
+		x: number;
+		y: number;
+		radius: number;
+		active: boolean;
+	};
 }
 
 function getScreenDimensions() {
@@ -57,7 +63,13 @@ export const petWorldState: PetWorldState = {
 		y: getScreenDimensions().height / 2,
 	},
 	score: 0,
-	lastPetVisible: false,
+	lastPetOnTarget: false,
+	target: {
+		x: Math.random() * (getScreenDimensions().width - 100) + 50,
+		y: Math.random() * (getScreenDimensions().height - 100) + 50,
+		radius: 35,
+		active: true,
+	},
 };
 
 export function updatePetPosition(
@@ -107,17 +119,42 @@ export function teleportPet() {
 	updatePetPosition(newX, newY, 0, 0);
 }
 
+export function updateTargetPosition(x: number, y: number) {
+	petWorldState.target.x = x;
+	petWorldState.target.y = y;
+}
+
+export function moveTargetToRandom() {
+	const screen = getScreenDimensions();
+	const newX = Math.random() * (screen.width - 100) + 50;
+	const newY = Math.random() * (screen.height - 100) + 50;
+	petWorldState.target.x = newX;
+	petWorldState.target.y = newY;
+}
+
+export function setTargetActive(active: boolean) {
+	petWorldState.target.active = active;
+}
+
+export function isPetOnTarget(): boolean {
+	const { pet, target } = petWorldState;
+	const dx = pet.x - target.x;
+	const dy = pet.y - target.y;
+	const distance = Math.sqrt(dx * dx + dy * dy);
+	return distance <= target.radius;
+}
+
 export function incrementScore(points: number = 1) {
 	petWorldState.score += points;
 }
 
 export function resetScore() {
 	petWorldState.score = 0;
-	petWorldState.lastPetVisible = false;
+	petWorldState.lastPetOnTarget = false;
 }
 
-export function setLastPetVisible(visible: boolean) {
-	petWorldState.lastPetVisible = visible;
+export function setLastPetOnTarget(onTarget: boolean) {
+	petWorldState.lastPetOnTarget = onTarget;
 }
 
 export function getState(): PetWorldState {

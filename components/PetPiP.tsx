@@ -12,9 +12,12 @@ import {
 	updateFixedPositionOnScreen,
 	getState,
 	incrementScore,
-	setLastPetVisible,
+	setLastPetOnTarget,
 	resetScore,
 	teleportPet,
+	moveTargetToRandom,
+	updateTargetPosition,
+	isPetOnTarget,
 } from "@/lib/pet-world";
 
 /// <reference lib="dom" />
@@ -59,6 +62,8 @@ export const PetPiP = ({ totalHours = 0 }: PetPiPProps) => {
 		if (screenX !== prev.x || screenY !== prev.y) {
 			positionRef.current = { x: screenX, y: screenY };
 			updatePipPosition(screenX, screenY);
+			// Update target to stay centered on the PiP window
+			updateTargetPosition(screenX + PIP_WIDTH / 2, screenY + PIP_HEIGHT / 2);
 		}
 
 		if (!pipWindow.closed) {
@@ -77,6 +82,12 @@ export const PetPiP = ({ totalHours = 0 }: PetPiPProps) => {
 				});
 			pipWindowRef.current = pipWindow;
 			positionRef.current = { x: pipWindow.screenX, y: pipWindow.screenY };
+
+			// Set initial target position to center of PiP window
+			updateTargetPosition(
+				pipWindow.screenX + PIP_WIDTH / 2,
+				pipWindow.screenY + PIP_HEIGHT / 2,
+			);
 
 			// Start tracking window movement
 			requestRef.current = requestAnimationFrame(trackMovement);
@@ -152,6 +163,12 @@ export const PetPiP = ({ totalHours = 0 }: PetPiPProps) => {
 				canvas.width = newWidth;
 				canvas.height = newHeight;
 				resizePipWindow(newWidth, newHeight);
+				// Update target to center of resized PiP window
+				const state = getState();
+				updateTargetPosition(
+					state.pipWindow.x + newWidth / 2,
+					state.pipWindow.y + newHeight / 2,
+				);
 			};
 
 			pipWindow.addEventListener("resize", handleResize);
@@ -373,6 +390,45 @@ function renderCanvas(
 		ctx.beginPath();
 		ctx.moveTo(x, y - size * 2);
 		ctx.lineTo(x, y + size * 2);
+		ctx.stroke();
+	};
+
+	const drawTarget = (
+		x: number,
+		y: number,
+		radius: number,
+		active: boolean,
+	) => {
+		const pulse = active ? 1 + Math.sin(frameCount * 0.1) * 0.2 : 1;
+		const outerRadius = radius * pulse;
+
+		// Outer glow ring
+		ctx.shadowColor = "#ff0000";
+		ctx.shadowBlur = 10;
+		ctx.strokeStyle = `rgba(255, 0, 0, ${active ? 0.8 : 0.3})`;
+		ctx.lineWidth = 2;
+		ctx.beginPath();
+		ctx.arc(x, y, outerRadius, 0, Math.PI * 2);
+		ctx.stroke();
+		ctx.shadowBlur = 0;
+
+		// Inner red dot
+		ctx.fillStyle = active ? "#ff0000" : "#660000";
+		ctx.beginPath();
+		ctx.arc(x, y, radius * 0.3, 0, Math.PI * 2);
+		ctx.fill();
+
+		// Crosshair (small plus sign)
+		ctx.strokeStyle = active ? "#ff6666" : "#993333";
+		ctx.lineWidth = 1;
+		const crossSize = radius * 0.5;
+		ctx.beginPath();
+		ctx.moveTo(x - crossSize, y);
+		ctx.lineTo(x + crossSize, y);
+		ctx.stroke();
+		ctx.beginPath();
+		ctx.moveTo(x, y - crossSize);
+		ctx.lineTo(x, y + crossSize);
 		ctx.stroke();
 	};
 
@@ -691,7 +747,7 @@ function renderCanvas(
 		ctx.restore();
 	};
 
-	const { petWorldState } = require("@/lib/pet-world");
+	const { petWorldState, setLastPetOnTarget } = require("@/lib/pet-world");
 	const ARROW_SIZE = 20;
 
 	const render = () => {
@@ -704,19 +760,33 @@ function renderCanvas(
 		const localX = state.pet.x - state.pipWindow.x;
 		const localY = state.pet.y - state.pipWindow.y;
 
+		// Target position in local canvas coordinates
+		const targetLocalX = state.target.x - state.pipWindow.x;
+		const targetLocalY = state.target.y - state.pipWindow.y;
+
 		const isVisible =
 			localX >= -40 &&
 			localX <= canvasWidth + 40 &&
 			localY >= -40 &&
 			localY <= canvasHeight + 40;
 
-		// Scoring: detect pet entering the canvas
-		if (isVisible && !state.lastPetVisible) {
+		const isOnTarget = isPetOnTarget();
+
+		// Scoring: trigger when pet becomes visible AND is on the target (within radius)
+		if (isVisible && isOnTarget && !state.lastPetOnTarget) {
 			incrementScore(1);
-			setLastPetVisible(true);
+			setLastPetOnTarget(true);
+			// Keep target centered on PiP window after scoring
+			updateTargetPosition(
+				state.pipWindow.x + state.pipWindow.width / 2,
+				state.pipWindow.y + state.pipWindow.height / 2,
+			);
 			onScoreAndTeleport();
-		} else if (!isVisible && state.lastPetVisible) {
-			setLastPetVisible(false);
+		} else if (!isVisible || !isOnTarget) {
+			// Reset flag when pet leaves target or goes off-screen
+			if (state.lastPetOnTarget) {
+				setLastPetOnTarget(false);
+			}
 		}
 
 		// Dark background
@@ -760,6 +830,16 @@ function renderCanvas(
 			ctx.beginPath();
 			ctx.arc(px, py, size, 0, Math.PI * 2);
 			ctx.fill();
+		}
+
+		// Draw target (red dot) on screen
+		if (state.target.active) {
+			drawTarget(
+				targetLocalX,
+				targetLocalY,
+				state.target.radius,
+				state.target.active,
+			);
 		}
 
 		// Teleport burst effect (when pet teleports)

@@ -274,9 +274,12 @@ The pet is drawn directly on a 2D canvas using Canvas API with multiple layers:
 - Background: moving scanline, 20px cyan grid, floating particles
 - Teleport Burst: expanding pink concentric rings + radial sparkles when pet teleports (15 frames)
 
-**Direction Indicator**
-- Cyan arrow with glow that points to pet when off-screen
-- Orbiting ring around arrow base
+**Target Reticle (Red Dot)**
+- Pulsing red circle with glow (radius: 35px)
+- Inner solid red dot
+- Crosshair extending outward
+- Active target pulses (scale 1±20%); inactive dimmed
+- Fixed at center of PiP window, moves with window to stay centered
 
 ## Screen Portal Effect (Virtual Pet)
 
@@ -294,15 +297,16 @@ The virtual pet exists in global screen coordinates and is visible through a Pic
      - `screen`: screen dimensions
      - `fixedPositionOnScreen`: where the pet stays fixed on screen
      - `score`: current gameplay score
-     - `lastPetVisible`: visibility state for scoring
-    - Exports for reading/updating state including `incrementScore`, `resetScore`, `setLastPetVisible`, `teleportPet`
-    - Singleton `petWorldState` object shared between main document and PiP window
+     - `lastPetOnTarget`: flag to prevent double-scoring on same catch
+     - `target`: { x, y, radius, active } — the red dot target zone
+   - Exports for reading/updating state including `incrementScore`, `resetScore`, `setLastPetOnTarget`, `teleportPet`, `moveTargetToRandom`, `isPetOnTarget`
+   - Singleton `petWorldState` object shared between main document and PiP window
 
 2. **`lib/pet-animation.ts`** - Animation loop module
    - **Pet Position**: Maintains pet at `fixedPositionOnScreen` (no wandering)
    - **PiP Tracking**: Updates `petWorldState.pipWindow` as the window moves via `updatePipPosition`
-   - **Scoring Integration**: Visibility detection and score increment handled in `renderCanvas`
-   - **Teleport**: When scored, `teleportPet()` is called to move pet to random location
+   - **Scoring Integration**: Visibility detection and `isPetOnTarget()` check performed in `renderCanvas`
+   - **Teleport**: After 1s delay, calls `teleportPet()` and `moveTargetToRandom()`
    - **Startup**: `startAnimation()` accepts optional custom fixed X/Y coordinates
 
 3. **`components/PetCanvas.tsx`** - Canvas rendering component (for React integration)
@@ -310,28 +314,20 @@ The virtual pet exists in global screen coordinates and is visible through a Pic
    - Draws direction arrow when pet is outside
    - Reads from shared `petWorldState`
 
-4. **`components/PetPiP.tsx`** - Updated to use Canvas rendering with gameplay
+4. **`components/PetPiP.tsx`** - Full gameplay with target reticle
    - Creates PiP window and starts animation loop
-   - Renders canvas directly in PiP window with full visual effects
-   - Scoring detection when pet enters view
-   - Teleportation triggers: pet moves to random location + burst effect
+   - Renders canvas with pet, target, particles, effects
+   - Scoring logic: pet must be **visible AND inside red target zone**
+   - After catch: +1 score, 1s delay, pet teleports, target jumps to new spot, burst effect
    - UI controls for position, score reset, and Hackatime hours display
 
 ### Pet Behavior
 
-The pet remains at a **fixed screen position** (default: screen center). The position is configurable via the X/Y controls in the PetPiP UI. The pet does not move on its own — it's completely stationary, creating an X-ray scanner effect where the PiP window moves over the pet.
-
-#### Teleportation
-
-When the pet is **caught** (enters the PiP view), it **teleports instantly** to a random location on screen. This adds challenge: you must quickly move the PiP window to the new location to catch it again. A visual **teleport burst effect** (expanding pink rings and sparkles) appears at the teleport destination.
-
-#### Scoring
-
-The PiP window acts as a scanner. You earn **+1 point** each time the pet **enters** the PiP view after being outside. The score is tracked globally and displayed in the control panel. A "+1!" popup provides visual feedback. Use the "Reset Score" button to zero the counter.
+The pet remains at a **fixed screen position** (configurable via X/Y controls). A **red dot target** is fixed at the center of the PiP window. To score, you must position the PiP window so the pet is **visible AND inside the centered red dot's radius** simultaneously. After scoring, the pet teleports to a new random spot while the target stays centered, creating a repositioning challenge.
 
 ### Gameplay: Pet Scanner Score Challenge
 
-The PiP window acts as a scanner. You earn points each time the pet **enters** the PiP window's view. The goal is to move the PiP window to catch the pet.
+The PiP window acts as a scanner with a centered target reticle. You earn points when the pet **enters both the PiP window's view AND the centered red target zone**. The goal is to align the PiP window so the pet appears inside the fixed center target.
 
 #### Scoring Mechanics
 
@@ -343,35 +339,31 @@ The PiP window acts as a scanner. You earn points each time the pet **enters** t
 #### Teleportation Mechanic
 
 - When caught, the pet **waits 1 second** then **teleports** to a random location
-- **Teleport burst effect**: expanding pink concentric rings + radial sparkles at destination
-- The delay gives you a moment to celebrate your catch before the pet escapes
-- Increases challenge — you must quickly chase the pet to its new location
-- Pet cannot teleport while off-screen; scoring only triggers on catch
+- **Teleport burst effect**: expanding pink concentric rings + radial sparkles
+- Target stays centered on PiP window after each catch
+- Pet teleports to new location, target remains centered for the next round
 
-#### Gameplay UI
+#### Scoring Mechanics
 
-The PetPiP control panel displays:
-- **Current Score** - large neon cyan display
-- **Hackatime Hours** - shows your total coding time as motivation
-- **Position Controls** - X/Y inputs to set the pet's fixed screen location
-- **Pin Current** - button to pin pet at its current screen position
-- **Reset Score** - button to zero the score counter
+- **+1 point** when pet is **both visible AND within the red target radius** simultaneously
+- After scoring, target stays centered on PiP window
+- Score persists across PiP sessions (until manually reset)
+- Visual feedback: "+1!" popup + teleport burst effect
 
-#### How to Play
+#### Gameplay Objective
 
-1. Click "Open Pet" to launch the PiP window
-2. The pet appears at a fixed location on your screen
-3. Drag the PiP window around to "scan" the pet
-4. When the pet enters view, you earn a point and it **waits 1 second** before teleporting to a new location
-5. Chase the pet to accumulate as many points as possible!
+1. Position the PiP window so the **pet appears inside the centered red dot**
+2. When both conditions align, you score
+3. Pet teleports to new spot, target stays centered
+4. Aim for the highest score possible!
 
 ### Files Created/Modified
 
 | File | Action | Purpose |
 |------|--------|---------|
-| `lib/pet-world.ts` | CREATE | Shared state singleton, score tracking, teleport |
+| `lib/pet-world.ts` | CREATE | Shared state singleton, score tracking, target reticle state, teleport |
 | `lib/pet-animation.ts` | CREATE | Animation loop, fixed position |
-| `components/PetPiP.tsx` | MODIFY | Canvas rendering, scoring UI, teleport effect, gameplay |
+| `components/PetPiP.tsx` | MODIFY | Canvas rendering, target reticle, delayed teleport, difficulty |
 | `app/dashboard/page.tsx` | MODIFY | Pass totalHours prop to PetPiP |
 | `PROJECT_DESCRIPTION.md` | UPDATE | Document the feature |
 
