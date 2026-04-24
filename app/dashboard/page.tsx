@@ -18,12 +18,15 @@ import {
 	CardTitle,
 } from "../../components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { FilterBar, type FilterState } from "@/components/dashboard/filter-bar";
 import { LanguageChart } from "@/components/dashboard/language-chart";
 import { EditorChart } from "@/components/dashboard/editor-chart";
 import { OSChart } from "@/components/dashboard/os-chart";
 import { PetPiP } from "../../components/PetPiP";
+import { PetIcon } from "@/components/PetIcon";
+import { GamesSection } from "@/components/games-section";
 
 function formatTime(seconds: number): string {
 	const hours = Math.floor(seconds / 3600);
@@ -670,6 +673,8 @@ export default function Dashboard() {
 			</div>
 
 			<HeroSection user={user} hours={hours} streak={streak} />
+
+			<GamesSection />
 
 			<FilterBar projects={projects} onFilterChange={handleFilterChange} />
 

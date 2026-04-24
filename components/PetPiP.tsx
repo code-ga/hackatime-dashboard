@@ -6,7 +6,6 @@ import {
 	stopAnimation,
 	updatePipPosition,
 	resizePipWindow,
-	getPipSize,
 } from "@/lib/pet-animation";
 import {
 	updateFixedPositionOnScreen,
@@ -15,10 +14,12 @@ import {
 	setLastPetOnTarget,
 	resetScore,
 	teleportPet,
-	moveTargetToRandom,
 	updateTargetPosition,
 	isPetOnTarget,
+	petWorldState,
 } from "@/lib/pet-world";
+import { GameInstructionsModal } from "./GameInstructionsModal";
+import { Button } from "@/components/ui/button";
 
 /// <reference lib="dom" />
 declare global {
@@ -51,6 +52,7 @@ export const PetPiP = ({ totalHours = 0 }: PetPiPProps) => {
 	const [isOpen, setIsOpen] = useState(false);
 	const [score, setScore] = useState(0);
 	const [showScorePopup, setShowScorePopup] = useState(false);
+	const [showInstructions, setShowInstructions] = useState(false);
 
 	const trackMovement = useCallback(() => {
 		const pipWindow = pipWindowRef.current;
@@ -106,7 +108,7 @@ export const PetPiP = ({ totalHours = 0 }: PetPiPProps) => {
 					const cssRules = styleSheet.cssRules;
 					const style = document.createElement("style");
 
-					for (let rule of cssRules) {
+					for (const rule of cssRules) {
 						style.appendChild(document.createTextNode(rule.cssText));
 					}
 
@@ -229,106 +231,147 @@ export const PetPiP = ({ totalHours = 0 }: PetPiPProps) => {
 
 	if (!isOpen) {
 		return (
-			<button
-				className="absolute top-2 right-2 text-gray-500 hover:text-gray-700"
-				onClick={handleOpenPet}
-			>
-				Open Pet
-			</button>
+			<>
+				<div className="absolute top-2 right-2 flex gap-2">
+					<Button
+						variant="cyberpunk"
+						size="sm"
+						onClick={handleOpenPet}
+						className="glow-cyan hover:scale-105 transition-transform"
+					>
+						Play Pet Game
+					</Button>
+					<Button
+						variant="outline"
+						size="sm"
+						onClick={() => setShowInstructions(true)}
+						className="border-cyan/30 text-cyan hover:bg-cyan/10 hover:border-cyan"
+					>
+						?
+					</Button>
+				</div>
+				{showInstructions && (
+					<GameInstructionsModal
+						open={showInstructions}
+						onOpenChange={setShowInstructions}
+					/>
+				)}
+			</>
 		);
 	}
 
 	return (
-		<div className="absolute top-2 right-2 flex flex-col gap-2 p-4 bg-black/80 border border-cyan/30 rounded-lg shadow-lg backdrop-blur-sm text-cyan">
-			{/* Score popup animation */}
-			{showScorePopup && (
-				<div className="absolute -top-8 left-1/2 transform -translate-x-1/2 text-yellow-400 font-bold text-lg animate-bounce">
-					+1!
+		<>
+			<div className="absolute top-2 right-2 flex flex-col gap-2 p-4 bg-black/80 border border-cyan/30 rounded-lg shadow-lg backdrop-blur-sm text-cyan">
+				{/* Score popup animation */}
+				{showScorePopup && (
+					<div className="absolute -top-8 left-1/2 transform -translate-x-1/2 text-yellow-400 font-bold text-lg animate-bounce">
+						+1!
+					</div>
+				)}
+
+				<div className="flex items-center justify-between mb-2">
+					<h3 className="text-sm font-semibold text-cyan glow-cyan">
+						Gameplay
+					</h3>
+					<div className="flex gap-1">
+						<Button
+							variant="ghost"
+							size="icon"
+							onClick={() => setShowInstructions(true)}
+							className="text-cyan/70 hover:text-cyan hover:bg-cyan/10 h-7 w-7"
+							title="Instructions"
+						>
+							?
+						</Button>
+						<button
+							className="text-xs text-cyan hover:text-white"
+							onClick={handleClosePet}
+						>
+							Close
+						</button>
+					</div>
 				</div>
+
+				{/* Score display */}
+				<div className="bg-cyan/10 border border-cyan/30 rounded p-2 text-center">
+					<p className="text-xs text-cyan/70 uppercase tracking-wider">Score</p>
+					<p className="text-2xl font-bold font-mono text-cyan glow-cyan">
+						{score}
+					</p>
+				</div>
+
+				{/* Hackatime hours */}
+				<div className="bg-magenta/10 border border-magenta/30 rounded p-2 text-center">
+					<p className="text-xs text-magenta/70 uppercase tracking-wider">
+						Hackatime
+					</p>
+					<p className="text-lg font-bold font-mono text-magenta glow-magenta">
+						{Math.floor(totalHours / 3600)}h{" "}
+						{Math.floor((totalHours % 3600) / 60)}m
+					</p>
+				</div>
+
+				{/* Position controls */}
+				<div className="flex flex-col gap-2 mt-2 pt-2 border-t border-cyan/20">
+					<div className="flex items-center gap-2">
+						<label className="text-xs text-cyan/70 w-8">X:</label>
+						<input
+							type="number"
+							value={fixedPos.x}
+							onChange={(e) =>
+								handleSetFixedPosition(Number(e.target.value), fixedPos.y)
+							}
+							className="w-20 px-2 py-1 text-sm bg-black/50 border border-cyan/30 rounded text-cyan font-mono focus:outline-none focus:border-cyan"
+							min="0"
+							max={typeof window !== "undefined" ? window.screen.width : 1920}
+						/>
+					</div>
+					<div className="flex items-center gap-2">
+						<label className="text-xs text-cyan/70 w-8">Y:</label>
+						<input
+							type="number"
+							value={fixedPos.y}
+							onChange={(e) =>
+								handleSetFixedPosition(fixedPos.x, Number(e.target.value))
+							}
+							className="w-20 px-2 py-1 text-sm bg-black/50 border border-cyan/30 rounded text-cyan font-mono focus:outline-none focus:border-cyan"
+							min="0"
+							max={typeof window !== "undefined" ? window.screen.height : 1080}
+						/>
+					</div>
+				</div>
+
+				{/* Action buttons */}
+				<div className="flex gap-2 mt-2">
+					<button
+						className="flex-1 px-2 py-1 text-xs bg-cyan/20 border border-cyan/30 text-cyan rounded hover:bg-cyan/30 transition-colors"
+						onClick={handlePinCurrentPosition}
+					>
+						Pin Current
+					</button>
+					<button
+						className="flex-1 px-2 py-1 text-xs bg-magenta/20 border border-magenta/30 text-magenta rounded hover:bg-magenta/30 transition-colors"
+						onClick={() => {
+							resetScore();
+							setScore(0);
+						}}
+					>
+						Reset Score
+					</button>
+				</div>
+
+				<p className="text-xs text-cyan/50 mt-2 text-center">
+					Pet stays fixed. Move PiP window to catch it!
+				</p>
+			</div>
+			{showInstructions && (
+				<GameInstructionsModal
+					open={showInstructions}
+					onOpenChange={setShowInstructions}
+				/>
 			)}
-
-			<div className="flex items-center justify-between mb-2">
-				<h3 className="text-sm font-semibold text-cyan glow-cyan">Gameplay</h3>
-				<button
-					className="text-xs text-cyan hover:text-white"
-					onClick={handleClosePet}
-				>
-					Close
-				</button>
-			</div>
-
-			{/* Score display */}
-			<div className="bg-cyan/10 border border-cyan/30 rounded p-2 text-center">
-				<p className="text-xs text-cyan/70 uppercase tracking-wider">Score</p>
-				<p className="text-2xl font-bold font-mono text-cyan glow-cyan">
-					{score}
-				</p>
-			</div>
-
-			{/* Hackatime hours */}
-			<div className="bg-magenta/10 border border-magenta/30 rounded p-2 text-center">
-				<p className="text-xs text-magenta/70 uppercase tracking-wider">
-					Hackatime
-				</p>
-				<p className="text-lg font-bold font-mono text-magenta glow-magenta">
-					{Math.floor(totalHours / 3600)}h{" "}
-					{Math.floor((totalHours % 3600) / 60)}m
-				</p>
-			</div>
-
-			{/* Position controls */}
-			<div className="flex flex-col gap-2 mt-2 pt-2 border-t border-cyan/20">
-				<div className="flex items-center gap-2">
-					<label className="text-xs text-cyan/70 w-8">X:</label>
-					<input
-						type="number"
-						value={fixedPos.x}
-						onChange={(e) =>
-							handleSetFixedPosition(Number(e.target.value), fixedPos.y)
-						}
-						className="w-20 px-2 py-1 text-sm bg-black/50 border border-cyan/30 rounded text-cyan font-mono focus:outline-none focus:border-cyan"
-						min="0"
-						max={typeof window !== "undefined" ? window.screen.width : 1920}
-					/>
-				</div>
-				<div className="flex items-center gap-2">
-					<label className="text-xs text-cyan/70 w-8">Y:</label>
-					<input
-						type="number"
-						value={fixedPos.y}
-						onChange={(e) =>
-							handleSetFixedPosition(fixedPos.x, Number(e.target.value))
-						}
-						className="w-20 px-2 py-1 text-sm bg-black/50 border border-cyan/30 rounded text-cyan font-mono focus:outline-none focus:border-cyan"
-						min="0"
-						max={typeof window !== "undefined" ? window.screen.height : 1080}
-					/>
-				</div>
-			</div>
-
-			{/* Action buttons */}
-			<div className="flex gap-2 mt-2">
-				<button
-					className="flex-1 px-2 py-1 text-xs bg-cyan/20 border border-cyan/30 text-cyan rounded hover:bg-cyan/30 transition-colors"
-					onClick={handlePinCurrentPosition}
-				>
-					Pin Current
-				</button>
-				<button
-					className="flex-1 px-2 py-1 text-xs bg-magenta/20 border border-magenta/30 text-magenta rounded hover:bg-magenta/30 transition-colors"
-					onClick={() => {
-						resetScore();
-						setScore(0);
-					}}
-				>
-					Reset Score
-				</button>
-			</div>
-
-			<p className="text-xs text-cyan/50 mt-2 text-center">
-				Pet stays fixed. Move PiP window to catch it!
-			</p>
-		</div>
+		</>
 	);
 };
 
@@ -341,7 +384,6 @@ function renderCanvas(
 	const ctx = canvas.getContext("2d");
 	if (!ctx) return;
 
-	let animationId: number;
 	let canvasWidth = canvas.width;
 	let canvasHeight = canvas.height;
 	let frameCount = 0;
@@ -747,7 +789,6 @@ function renderCanvas(
 		ctx.restore();
 	};
 
-	const { petWorldState, setLastPetOnTarget } = require("@/lib/pet-world");
 	const ARROW_SIZE = 20;
 
 	const render = () => {
@@ -882,7 +923,7 @@ function renderCanvas(
 		}
 
 		frameCount++;
-		animationId = requestAnimationFrame(render);
+		requestAnimationFrame(render);
 	};
 
 	render();

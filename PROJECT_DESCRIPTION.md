@@ -43,6 +43,14 @@ Access any Hackatime user's public profile by visiting `/user/{username}`.
 
 ## Authenticated Dashboard (`/dashboard`)
 
+### Games Section (New Feature)
+- **GamesSection Component** - A dedicated section for housing game-related UI elements
+  - Contains the "Play Pet Game" button with neon cyberpunk styling
+  - Includes placeholder for future games (disabled "Coming Soon" button)
+  - Handles game instructions modal logic separately from the main dashboard
+  - Allows developers to easily add more games by extending this component
+
+
 Access your personal Hackatime data by visiting `/dashboard` (requires authentication via OAuth).
 
 ### Components
@@ -160,6 +168,7 @@ Added in `app/globals.css`:
 - Loading states show skeleton animations while fetching data
 - Error states display friendly error messages
 - Type definition for `GetAnyUserHeartbeatsSpansResponse.spans` was updated from tuple to array type
+- **Bug Fix (2026-04-24)**: Fixed TypeScript error in `components/PetPiP.tsx` where `GameInstructionsModal` rendering code was placed outside the component scope, causing `showInstructions` to be undefined. The modal is now properly rendered inside the component's return statement using a React fragment wrapper in both open and closed states.
 
 ## Activity Timeline Snake Animation
 
@@ -364,6 +373,7 @@ The PiP window acts as a scanner with a centered target reticle. You earn points
 | `lib/pet-world.ts` | CREATE | Shared state singleton, score tracking, target reticle state, teleport |
 | `lib/pet-animation.ts` | CREATE | Animation loop, fixed position |
 | `components/PetPiP.tsx` | MODIFY | Canvas rendering, target reticle, delayed teleport, difficulty |
-| `app/dashboard/page.tsx` | MODIFY | Pass totalHours prop to PetPiP |
+| `app/dashboard/page.tsx` | MODIFY | Remove Pet Game button and instruction handling, add GamesSection component |
+| `components/games-section.tsx` | CREATE | New component housing game buttons and instruction logic for extensibility |
 | `PROJECT_DESCRIPTION.md` | UPDATE | Document the feature |
 

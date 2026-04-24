@@ -238,3 +238,30 @@
   animation: scanline 3s linear infinite;
   pointer-events: none;
 }
+
+@keyframes neon-bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-3px); }
+}
+
+.animate-neon-bounce {
+  animation: neon-bounce 2s ease-in-out infinite;
+}
+
+@keyframes border-glow {
+  0%, 100% { border-color: rgba(0, 255, 255, 0.3); }
+  50% { border-color: rgba(0, 255, 255, 0.8); }
+}
+
+.cyberpunk-border {
+  animation: border-glow 3s ease-in-out infinite;
+}
+
+@keyframes accent-glow {
+  0%, 100% { box-shadow: 0 0 5px theme('colors.cyan'), 0 0 10px theme('colors.cyan'); }
+  50% { box-shadow: 0 0 10px theme('colors.cyan'), 0 0 20px theme('colors.cyan'), 0 0 30px theme('colors.cyan'); }
+}
+
+.animate-accent-glow {
+  animation: accent-glow 3s ease-in-out infinite;
+}
