@@ -90,8 +90,9 @@ function getLanguageColor(language: string): string {
 		yaml: "bg-pink-500",
 		json: "bg-yellow-600",
 		markdown: "bg-gray-500",
+		default: "bg-gray-500",
 	};
-	const lang = language.toLowerCase();
+	const lang = language ? language.toLowerCase() : "default";
 	return colors[lang] || "bg-gray-500";
 }
 
