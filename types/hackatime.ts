@@ -20,7 +20,7 @@ export type GetAnyUserStatsResponse = {
 		}[];
 		streak: number;
 	};
-	trust_factor: {
+	trust_factor?: {
 		trust_level: string;
 		trust_value: number;
 	};
@@ -47,7 +47,7 @@ export type GetAuthenticatedMeResponse = {
 	emails: string[];
 	slack_id?: string;
 	github_username?: string;
-	trust_factor: {
+	trust_factor?: {
 		trust_level: string;
 		trust_value: number;
 	};

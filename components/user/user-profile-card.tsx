@@ -34,7 +34,9 @@ function getTrustColor(level: string): string {
 
 export function UserProfileCard({ username, stats }: UserProfileCardProps) {
 	const { trust_factor, data } = stats;
-	const trustPercentage = (trust_factor.trust_value / 100) * 100;
+	const trustPercentage = trust_factor
+		? (trust_factor.trust_value / 100) * 100
+		: 0;
 
 	return (
 		<Card className="border-cyan/20 bg-card/50 backdrop-blur-sm animate-fade-in animate-delay-100 overflow-hidden relative">
@@ -56,9 +58,9 @@ export function UserProfileCard({ username, stats }: UserProfileCardProps) {
 								@{username}
 							</h1>
 							<Badge
-								className={`font-mono ${getTrustColor(trust_factor.trust_level)}`}
+								className={`font-mono ${trust_factor ? getTrustColor(trust_factor.trust_level) : "bg-muted text-muted-foreground"}`}
 							>
-								{trust_factor.trust_level} trust
+								{trust_factor ? trust_factor.trust_level : "Unknown"} trust
 							</Badge>
 						</div>
 
@@ -100,7 +102,9 @@ export function UserProfileCard({ username, stats }: UserProfileCardProps) {
 						<div className="space-y-2">
 							<div className="flex justify-between text-xs font-mono">
 								<span className="text-muted-foreground">Trust Factor</span>
-								<span className="text-cyan">{trust_factor.trust_value}%</span>
+								<span className="text-cyan">
+									{trust_factor ? `${trust_factor.trust_value}%` : "N/A"}
+								</span>
 							</div>
 							<Progress
 								value={trustPercentage}
